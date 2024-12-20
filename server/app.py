@@ -30,10 +30,16 @@ class TripResource(Resource):
             db.session.rollback()
             return {'error': '422 Unprocessable Entity'}, 422
 
-    def get(self):
-        """List all trips."""
-        trips = Trip.query.all()
-        return [trip.to_dict() for trip in trips], 200
+    def get(self, trip_id=None):
+        """Get a list of all trips or a single trip by trip_id."""
+        if trip_id:
+            # Fetch a specific trip by ID
+            trip = Trip.query.get_or_404(trip_id)  # Will return 404 if trip not found
+            return trip.to_dict(), 200
+        else:
+            # Fetch all trips if no trip_id is provided
+            trips = Trip.query.all()
+            return [trip.to_dict() for trip in trips], 200
 
 
 class PlaceResource(Resource):
@@ -58,9 +64,14 @@ class PlaceResource(Resource):
             db.session.rollback()
             return {'error': '422 Unprocessable Entity'}, 422
 
-    def get(self):
-        """List all places."""
-        places = Place.query.all()
+    def get(self, trip_id=None):
+        """List all places for a specific trip, or all places if no trip_id is provided."""
+        if trip_id:
+            trip = Trip.query.get_or_404(trip_id)
+            places = Place.query.filter_by(trip_id=trip.id).all()
+        else:
+            places = Place.query.all()
+
         return [place.to_dict() for place in places], 200
 
 
@@ -88,9 +99,14 @@ class ActivityResource(Resource):
             db.session.rollback()
             return {'error': '422 Unprocessable Entity'}, 422
 
-    def get(self):
-        """List all activities."""
-        activities = Activity.query.all()
+    def get(self, place_id=None):
+        """List all activities for a specific place, or all activities if no place_id is provided."""
+        if place_id:
+            place = Place.query.get_or_404(place_id)
+            activities = Activity.query.filter_by(place_id=place.id).all()
+        else:
+            activities = Activity.query.all()
+
         return [activity.to_dict() for activity in activities], 200
 
 
