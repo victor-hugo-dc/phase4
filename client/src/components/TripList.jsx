@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Button, Paper } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import TripItem from './TripItem';
 
 const TripList = () => {
     const [trips, setTrips] = useState([]);
@@ -15,6 +16,38 @@ const TripList = () => {
         fetchTrips();
     };
 
+    const addActivity = async (tripId) => {
+        // Logic for adding activity (make a POST request to backend)
+        const activityData = { name: 'New Activity', description: 'Description' }; // Example data
+        await fetch(`http://localhost:5555/activities`, {
+            method: 'POST',
+            body: JSON.stringify({ ...activityData, trip_id: tripId }),
+            headers: { 'Content-Type': 'application/json' },
+        });
+        fetchTrips();
+    };
+
+    const addPlace = async (tripId) => {
+        // Logic for adding place (make a POST request to backend)
+        const placeData = { name: 'New Place', description: 'Description' }; // Example data
+        await fetch(`http://localhost:5555/places`, {
+            method: 'POST',
+            body: JSON.stringify({ ...placeData, trip_id: tripId }),
+            headers: { 'Content-Type': 'application/json' },
+        });
+        fetchTrips();
+    };
+
+    const deleteActivity = async (tripId, activityId) => {
+        await fetch(`http://localhost:5555/activities/${activityId}`, { method: 'DELETE' });
+        fetchTrips();
+    };
+
+    const deletePlace = async (tripId, placeId) => {
+        await fetch(`http://localhost:5555/places/${placeId}`, { method: 'DELETE' });
+        fetchTrips();
+    };
+
     useEffect(() => {
         fetchTrips();
     }, []);
@@ -25,18 +58,15 @@ const TripList = () => {
                 All Trips
             </Typography>
             {trips.map((trip) => (
-                <Paper key={trip.id} sx={{ padding: '15px', marginBottom: '10px' }}>
-                    <Typography variant="h6">{trip.name}</Typography>
-                    <Typography variant="body1">{trip.description}</Typography>
-                    <Button
-                        variant="contained"
-                        color="error"
-                        sx={{ marginTop: '10px' }}
-                        onClick={() => deleteTrip(trip.id)}
-                    >
-                        Delete
-                    </Button>
-                </Paper>
+                <TripItem
+                    key={trip.id}
+                    trip={trip}
+                    deleteTrip={deleteTrip}
+                    addActivity={addActivity}
+                    addPlace={addPlace}
+                    deleteActivity={deleteActivity}
+                    deletePlace={deletePlace}
+                />
             ))}
         </Box>
     );
