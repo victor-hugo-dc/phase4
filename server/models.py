@@ -1,104 +1,95 @@
 from sqlalchemy.orm import validates
 from sqlalchemy_serializer import SerializerMixin
 from config import db
+from datetime import datetime
 
-# Association Table for Many-to-Many relationship between Activities and Places
-activity_places = db.Table(
-    'activity_places',
-    db.Column('activity_id', db.Integer, db.ForeignKey('activities.id'), primary_key=True),
-    db.Column('place_id', db.Integer, db.ForeignKey('places.id'), primary_key=True),
-    db.Column('cost', db.Float, nullable=False)  # User-submittable cost for each activity at each place
+# Association table for many-to-many relationship
+activities_trips = db.Table('activities_trips',
+    db.Column('activity_id', db.Integer, db.ForeignKey('activity.id'), primary_key=True),
+    db.Column('trip_id', db.Integer, db.ForeignKey('trip.id'), primary_key=True),
+    db.Column('rating', db.Float)  # User-submittable attribute
 )
 
 
 class Trip(db.Model, SerializerMixin):
-    __tablename__ = 'trips'
+    __tablename__ = 'trip'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     description = db.Column(db.Text)
-
-    # Relationships
-    places = db.relationship('Place', back_populates='trip', cascade="all, delete-orphan")
+    
+    places = db.relationship('Place', backref='trip', cascade='all, delete-orphan')
 
     # Serialization rules
     serialize_rules = ('-places.trip',)
 
-    # Validations
     @validates('name')
-    def validate_name(self, key, name):
-        if not name or len(name) < 3:
-            raise ValueError("Trip name must be at least 3 characters long")
-        return name
+    def validate_name(self, key, value):
+        if not value or len(value.strip()) < 3:
+            raise ValueError("Trip name must be at least 3 characters long.")
+        return value.strip()
 
     @validates('start_date', 'end_date')
-    def validate_dates(self, key, date):
-        if key == 'end_date' and date <= self.start_date:
-            raise ValueError("End date must be after start date")
-        return date
-
-    def __repr__(self):
-        return f"<Trip {self.name}>"
-
-
-class Place(db.Model, SerializerMixin):
-    __tablename__ = 'places'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
-    address = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text)
-
-    # Foreign key
-    trip_id = db.Column(db.Integer, db.ForeignKey('trips.id'), nullable=False)
-
-    # Relationships
-    trip = db.relationship('Trip', back_populates='places')
-    activities = db.relationship('Activity', secondary=activity_places, back_populates='places')
-
-    # Serialization rules
-    serialize_rules = ('-trip.places', '-activities.places')
-
-    # Validations
-    @validates('name', 'address')
-    def validate_fields(self, key, value):
-        if key == 'name' and (not value or len(value) < 3):
-            raise ValueError("Place name must be at least 3 characters long")
-        if key == 'address' and (not value or len(value) < 5):
-            raise ValueError("Address must be at least 5 characters long")
+    def validate_dates(self, key, value):
+        if not value:
+            raise ValueError(f"{key} is required.")
         return value
 
-    def __repr__(self):
-        return f"<Place {self.name}>"
+    def validate_trip_dates(self):
+        if self.start_date >= self.end_date:
+            raise ValueError("Start date must be before end date.")
+    
+    @staticmethod
+    def from_dict(data):
+        """Create an instance of Trip from a dictionary."""
+        # Convert date strings into Python date objects
+        start_date = datetime.fromisoformat(data['start_date']).date()
+        end_date = datetime.fromisoformat(data['end_date']).date()
+
+        return Trip(
+            name=data['name'],
+            start_date=start_date,
+            end_date=end_date,
+            description=data.get('description')
+        )
+
+class Place(db.Model, SerializerMixin):
+    __tablename__ = 'place'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    trip_id = db.Column(db.Integer, db.ForeignKey('trip.id'), nullable=False)
+    description = db.Column(db.Text)
+    activities = db.relationship('Activity', backref='place', cascade='all, delete-orphan')
+
+    serialize_rules = ('-trip', '-activities.place')
+
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value or len(value.strip()) < 3:
+            raise ValueError("Place name must be at least 3 characters long.")
+        return value.strip()
 
 
 class Activity(db.Model, SerializerMixin):
-    __tablename__ = 'activities'
+    __tablename__ = 'activity'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
-    type = db.Column(db.String(50), nullable=False)  # e.g., "Hiking," "Dining"
-    rating = db.Column(db.Integer, nullable=False)  # Rating from 1 to 5
-    cost = db.Column(db.Float, nullable=False)  # Cost of the activity
+    name = db.Column(db.String(100), nullable=False)
+    place_id = db.Column(db.Integer, db.ForeignKey('place.id'), nullable=False)
+    description = db.Column(db.Text)
+    trips = db.relationship('Trip', secondary=activities_trips, backref='activities')
 
-    # Relationships
-    places = db.relationship('Place', secondary=activity_places, back_populates='activities')
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value or len(value.strip()) < 3:
+            raise ValueError("Activity name must be at least 3 characters long.")
+        return value.strip()
 
-    # Serialization rules
-    serialize_rules = ('-places.activities',)
-
-    # Validations
-    @validates('name', 'rating', 'cost')
-    def validate_fields(self, key, value):
-        if key == 'name' and (not value or len(value) < 3):
-            raise ValueError("Activity name must be at least 3 characters long")
-        if key == 'rating' and (value < 1 or value > 5):
-            raise ValueError("Rating must be between 1 and 5")
-        if key == 'cost' and value <= 0:
-            raise ValueError("Cost must be a positive number")
-        return value
-
-    def __repr__(self):
-        return f"<Activity {self.name}>"
+    @validates('description')
+    def validate_description(self, key, value):
+        if len(value.strip()) > 500:
+            raise ValueError("Description cannot exceed 500 characters.")
+        return value.strip()

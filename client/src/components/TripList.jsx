@@ -1,32 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, Button, Paper } from '@mui/material';
 
-function TripList() {
+const TripList = () => {
     const [trips, setTrips] = useState([]);
 
+    const fetchTrips = async () => {
+        const response = await fetch('http://localhost:5555/trips');
+        const data = await response.json();
+        setTrips(data);
+    };
+
+    const deleteTrip = async (id) => {
+        await fetch(`http://localhost:5555/trips/${id}`, { method: 'DELETE' });
+        fetchTrips();
+    };
+
     useEffect(() => {
-        fetch('http://localhost:5555/trips')
-            .then((res) => res.json())
-            .then((data) => setTrips(data))
-            .catch((error) => console.error('Error fetching trips:', error));
+        fetchTrips();
     }, []);
 
     return (
-        <div>
-            <h1>Trip List</h1>
-            <ul>
-                {trips.map((trip) => (
-                    <li key={trip.id}>
-                        <h3>
-                            <Link to={`/trip/${trip.id}`}>{trip.name}</Link>
-                        </h3>
-                        <p>{trip.start_date} to {trip.end_date}</p>
-                        <p>{trip.description}</p>
-                    </li>
-                ))}
-            </ul>
-        </div>
+        <Box sx={{ padding: '20px' }}>
+            <Typography variant="h4" gutterBottom>
+                All Trips
+            </Typography>
+            {trips.map((trip) => (
+                <Paper key={trip.id} sx={{ padding: '15px', marginBottom: '10px' }}>
+                    <Typography variant="h6">{trip.name}</Typography>
+                    <Typography variant="body1">{trip.description}</Typography>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        sx={{ marginTop: '10px' }}
+                        onClick={() => deleteTrip(trip.id)}
+                    >
+                        Delete
+                    </Button>
+                </Paper>
+            ))}
+        </Box>
     );
-}
+};
 
 export default TripList;

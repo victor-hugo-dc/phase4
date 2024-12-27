@@ -1,71 +1,82 @@
 from config import app, db
-from models import Trip, Place, Activity, activity_places  # Ensure activity_places is imported
+from models import Trip, Place, Activity
 from faker import Faker
 from datetime import timedelta
 
 fake = Faker()
 
-def generate_dates():
-    """Generate a start date and an end date where end date is always after the start date."""
-    start_date = fake.date_this_decade()
-    # Ensure end_date is after start_date by adding a random number of days to start_date
-    end_date = start_date + timedelta(days=fake.random_int(min=1, max=10))  # Ensures a valid date range
-    return start_date, end_date
+# Initialize Faker
+faker = Faker()
 
-def generate_trip_name():
-    """Ensure the trip name is at least 3 characters long."""
-    name = fake.word()
-    while len(name) < 3:
-        name = fake.word()  # Generate a new word until it's 3 or more characters long
-    return name
+# Clear the database and recreate it
+def reset_database():
+    db.drop_all()
+    db.create_all()
 
-with app.app_context():
-    print("Deleting all records...")
-    Trip.query.delete()
-    Place.query.delete()
-    Activity.query.delete()
-    db.session.commit()
-
-    print("Seeding data...")
-    for _ in range(5):
-        start_date, end_date = generate_dates()
-        trip_name = generate_trip_name()  # Ensure the name is at least 3 characters long
-        
+# Seed Trips
+def seed_trips(num_trips=10):
+    trips = []
+    for _ in range(num_trips):
+        start_date = faker.date_this_year(before_today=True, after_today=False)
+        end_date = faker.date_between(start_date=start_date, end_date="+30d")
         trip = Trip(
-            name=trip_name,
+            name=faker.city(),
             start_date=start_date,
             end_date=end_date,
-            description=fake.paragraph()
+            description=faker.text(max_nb_chars=200)
         )
+        trips.append(trip)
         db.session.add(trip)
-
-        for _ in range(2):
-            place = Place(
-                name=fake.city(),
-                address=fake.address(),
-                description=fake.paragraph(),
-                trip=trip
-            )
-            db.session.add(place)
-
-            for _ in range(3):
-                # Create the activity and ensure it is committed to get an ID
-                activity = Activity(
-                    name=fake.word(),
-                    type=fake.word(),
-                    rating=fake.random_int(min=1, max=5),
-                    cost=fake.random_int(min=10, max=500)  # Ensure valid cost
-                )
-                db.session.add(activity)
-                db.session.commit()  # Commit here to ensure the activity ID is generated
-
-                # Now insert into the activity_places association table
-                activity_place = activity_places.insert().values(
-                    activity_id=activity.id,  # Now activity.id is available
-                    place_id=place.id,
-                    cost=activity.cost
-                )
-                db.session.execute(activity_place)
-
     db.session.commit()
-    print("Seeding complete.")
+    return trips
+
+# Seed Places
+def seed_places(trips, max_places_per_trip=5):
+    places = []
+    for trip in trips:
+        for _ in range(faker.random_int(min=1, max=max_places_per_trip)):
+            place = Place(
+                name=faker.address(),
+                trip_id=trip.id,
+                description=faker.text(max_nb_chars=150)
+            )
+            places.append(place)
+            db.session.add(place)
+    db.session.commit()
+    return places
+
+# Seed Activities
+def seed_activities(places, max_activities_per_place=5):
+    activities = []
+    for place in places:
+        for _ in range(faker.random_int(min=1, max=max_activities_per_place)):
+            activity = Activity(
+                name=faker.sentence(nb_words=4),
+                place_id=place.id,
+                description=faker.text(max_nb_chars=300)
+            )
+            activities.append(activity)
+            db.session.add(activity)
+    db.session.commit()
+    return activities
+
+# Main seeding function
+def seed_database():
+    print("Resetting database...")
+    reset_database()
+
+    print("Seeding trips...")
+    trips = seed_trips()
+
+    print("Seeding places...")
+    places = seed_places(trips)
+
+    print("Seeding activities...")
+    seed_activities(places)
+
+    print("Database seeding completed!")
+
+if __name__ == "__main__":
+    # Ensure the app context is available
+    with app.app_context():
+        seed_database()

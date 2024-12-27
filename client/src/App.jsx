@@ -1,30 +1,21 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Home from './components/Home';
 import TripList from './components/TripList';
-import CreateTrip from './components/CreateTrip';
-import TripDetail from './components/TripDetail';  // Import the TripDetail component
+import TripForm from './components/TripForm';
 
-function App() {
+const App = () => {
   return (
-    <Router>
-      <nav>
-        <ul>
-          <li>
-            <Link to="/">Trip List</Link>
-          </li>
-          <li>
-            <Link to="/create-trip">Create Trip</Link>
-          </li>
-        </ul>
-      </nav>
-
+    <>
+      <Navbar />
       <Routes>
-        <Route path="/" element={<TripList />} />
-        <Route path="/create-trip" element={<CreateTrip />} />
-        <Route path="/trip/:tripId" element={<TripDetail />} />  {/* Add the route for TripDetail */}
+        <Route path="/" element={<Home />} />
+        <Route path="/trips" element={<TripList />} />
+        <Route path="/trips/new" element={<TripForm />} />
       </Routes>
-    </Router>
+    </>
   );
-}
+};
 
 export default App;
