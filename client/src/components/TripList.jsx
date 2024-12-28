@@ -16,20 +16,16 @@ const TripList = () => {
         fetchTrips();
     };
 
-    const addActivity = async (tripId) => {
-        // Logic for adding activity (make a POST request to backend)
-        const activityData = { name: 'New Activity', description: 'Description' }; // Example data
+    const addActivity = async (activityData) => {
         await fetch(`http://localhost:5555/activities`, {
             method: 'POST',
-            body: JSON.stringify({ ...activityData, trip_id: tripId }),
+            body: JSON.stringify(activityData),
             headers: { 'Content-Type': 'application/json' },
         });
         fetchTrips();
     };
-
-    const addPlace = async (tripId) => {
-        // Logic for adding place (make a POST request to backend)
-        const placeData = { name: 'New Place', description: 'Description' }; // Example data
+    
+    const addPlace = async (tripId, placeData) => {
         await fetch(`http://localhost:5555/places`, {
             method: 'POST',
             body: JSON.stringify({ ...placeData, trip_id: tripId }),
@@ -37,6 +33,7 @@ const TripList = () => {
         });
         fetchTrips();
     };
+    
 
     const deleteActivity = async (tripId, activityId) => {
         await fetch(`http://localhost:5555/activities/${activityId}`, { method: 'DELETE' });
