@@ -1,8 +1,18 @@
-# React + Vite
+# Client Side Documentation
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
+The client-side application is built using React and Vite for fast, modular development and optimized builds. This README provides an overview of the key features, libraries, and setup instructions for the client application.
 
-Currently, two official plugins are available:
+## Features
+- React Framework: A modular and declarative approach to building user interfaces.
+- Vite Integration: Enhanced development performance with faster hot module replacement (HMR).
+- Material UI (MUI): A React component library for styling and layout. 
+- Three.js and react-three/fiber: Used for rendering and animating 3D models, including a globe with scroll-based interactions.
+- Dynamic State Management: Using React hooks such as useState and useEffect for managing component states.
+- REST API Integration: Fetching and manipulating data from a Flask backend.
+- Responsive Design: Ensuring a seamless experience across devices.
+- Styled Components: Inline styles with Material UI's sx prop.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Prerequisites
+- Node.js (v16 or higher recommended)
+- npm or yarn
