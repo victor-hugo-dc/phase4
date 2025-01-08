@@ -3,14 +3,6 @@ from sqlalchemy_serializer import SerializerMixin
 from config import db
 from datetime import datetime
 
-# Association table for many-to-many relationship
-activities_trips = db.Table('activities_trips',
-    db.Column('activity_id', db.Integer, db.ForeignKey('activity.id'), primary_key=True),
-    db.Column('trip_id', db.Integer, db.ForeignKey('trip.id'), primary_key=True),
-    db.Column('rating', db.Float)  # User-submittable attribute
-)
-
-
 class Trip(db.Model, SerializerMixin):
     __tablename__ = 'trip'
 
@@ -19,11 +11,11 @@ class Trip(db.Model, SerializerMixin):
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     description = db.Column(db.Text)
-    
-    places = db.relationship('Place', backref='trip', cascade='all, delete-orphan')
 
-    # Serialization rules
-    serialize_rules = ('-places.trip',)
+    places = db.relationship('Place', backref='trip', cascade='all, delete-orphan')
+    activities = db.relationship('Activity', backref='trip', cascade='all, delete-orphan')
+
+    serialize_rules = ('-places.trip', '-activities.trip', '-activities.place', '-places.activities')
 
     @validates('name')
     def validate_name(self, key, value):
@@ -40,11 +32,9 @@ class Trip(db.Model, SerializerMixin):
     def validate_trip_dates(self):
         if self.start_date >= self.end_date:
             raise ValueError("Start date must be before end date.")
-    
+
     @staticmethod
     def from_dict(data):
-        """Create an instance of Trip from a dictionary."""
-        # Convert date strings into Python date objects
         start_date = datetime.fromisoformat(data['start_date']).date()
         end_date = datetime.fromisoformat(data['end_date']).date()
 
@@ -64,7 +54,7 @@ class Place(db.Model, SerializerMixin):
     description = db.Column(db.Text)
     activities = db.relationship('Activity', backref='place', cascade='all, delete-orphan')
 
-    serialize_rules = ('-trip', '-activities.place')
+    serialize_rules = ('-trip.places', '-activities.place')
 
     @validates('name')
     def validate_name(self, key, value):
@@ -78,9 +68,11 @@ class Activity(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    place_id = db.Column(db.Integer, db.ForeignKey('place.id'), nullable=False)
     description = db.Column(db.Text)
-    trips = db.relationship('Trip', secondary=activities_trips, backref='activities')
+    place_id = db.Column(db.Integer, db.ForeignKey('place.id'), nullable=False)
+    trip_id = db.Column(db.Integer, db.ForeignKey('trip.id'), nullable=False)
+
+    serialize_rules = ('-place.activities', '-trip.activities')
 
     @validates('name')
     def validate_name(self, key, value):

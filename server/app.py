@@ -52,23 +52,6 @@ class TripResource(Resource):
             return trip.to_dict(), 200
         except Exception as e:
             return {'error': str(e)}, 400
-    
-    def patch(self, trip_id):  # Add support for PATCH
-        trip = Trip.query.get_or_404(trip_id)
-        data = request.get_json()
-        try:
-            if 'name' in data:
-                trip.name = data['name']
-            if 'start_date' in data:
-                trip.start_date = parse_date(data['start_date'])
-            if 'end_date' in data:
-                trip.end_date = parse_date(data['end_date'])
-            if 'description' in data:
-                trip.description = data['description']
-            db.session.commit()
-            return trip.to_dict(), 200
-        except Exception as e:
-            return {'error': str(e)}, 400
 
     def delete(self, trip_id):
         trip = Trip.query.get_or_404(trip_id)
@@ -87,7 +70,6 @@ class PlaceListResource(Resource):
         try:
             place = Place(
                 name=data['name'],
-                trip_id=data['trip_id'],
                 description=data.get('description', '')
             )
             db.session.add(place)
@@ -128,10 +110,13 @@ class ActivityListResource(Resource):
     def post(self):
         data = request.get_json()
         try:
+            trip_id = data['trip_id']
+            place_id = data['place_id']
             activity = Activity(
                 name=data['name'],
-                place_id=data['place_id'],
-                description=data.get('description', '')
+                description=data.get('description', ''),
+                trip_id=trip_id,
+                place_id=place_id
             )
             db.session.add(activity)
             db.session.commit()
@@ -151,6 +136,8 @@ class ActivityResource(Resource):
         try:
             activity.name = data['name']
             activity.description = data.get('description', activity.description)
+            activity.trip_id = data.get('trip_id', activity.trip_id)
+            activity.place_id = data.get('place_id', activity.place_id)
             db.session.commit()
             return activity.to_dict(), 200
         except Exception as e:
