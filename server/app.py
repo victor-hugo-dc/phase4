@@ -53,6 +53,24 @@ class TripResource(Resource):
         except Exception as e:
             return {'error': str(e)}, 400
 
+    def patch(self, trip_id):
+        trip = Trip.query.get_or_404(trip_id)
+        data = request.get_json()
+        try:
+            # Update only the fields provided in the request
+            if 'name' in data:
+                trip.name = data['name']
+            if 'start_date' in data:
+                trip.start_date = parse_date(data['start_date'])
+            if 'end_date' in data:
+                trip.end_date = parse_date(data['end_date'])
+            if 'description' in data:
+                trip.description = data['description']
+            db.session.commit()
+            return trip.to_dict(), 200
+        except Exception as e:
+            return {'error': str(e)}, 400
+
     def delete(self, trip_id):
         trip = Trip.query.get_or_404(trip_id)
         db.session.delete(trip)
@@ -67,16 +85,21 @@ class PlaceListResource(Resource):
 
     def post(self):
         data = request.get_json()
-        try:
-            place = Place(
-                name=data['name'],
-                description=data.get('description', '')
-            )
-            db.session.add(place)
-            db.session.commit()
-            return place.to_dict(), 201
-        except Exception as e:
-            return {'error': str(e)}, 400
+        if not data or not data.get('name'):
+            return {'error': 'Name is required'}, 400
+        if not data.get('trip_id'):
+            return {'error': 'Trip ID is required'}, 400
+
+        trip_id = data.get('trip_id')
+        trip = Trip.query.get(trip_id)
+        if not trip:
+            return {'error': 'Trip not found'}, 404
+
+        place = Place(name=data['name'], description=data.get('description'), trip_id=trip_id)
+        db.session.add(place)
+        db.session.commit()
+
+        return place.to_dict(), 201
 
 
 class PlaceResource(Resource):

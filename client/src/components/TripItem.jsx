@@ -21,7 +21,7 @@ const TripItem = ({ trip, deleteTrip, deletePlace, deleteActivity, addPlace, add
     const handleAddPlaceClose = () => setOpenAddPlace(false);
 
     const handleAddActivityOpen = (placeId) => {
-        setNewActivity({ ...newActivity, place_id: placeId });  // Set the place_id in the new activity data
+        setNewActivity({ ...newActivity, place_id: placeId }); // Set the place_id in the new activity data
         setOpenAddActivity(true);
     };
     const handleAddActivityClose = () => setOpenAddActivity(false);
@@ -30,15 +30,43 @@ const TripItem = ({ trip, deleteTrip, deletePlace, deleteActivity, addPlace, add
         setEditData({ ...editData, [e.target.name]: e.target.value });
     };
 
+    const handleEditSubmit = async () => {
+        try {
+            const response = await fetch(`http://localhost:5555/trips/${trip.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editData),
+            });
+            const updatedTrip = await response.json();
+            trip.name = updatedTrip.name; // Update the trip object directly
+            trip.description = updatedTrip.description;
+        } catch (error) {
+            console.error('Error updating trip:', error);
+        }
+        setOpenEdit(false); // Close dialog
+    };
+
     const handleAddPlaceSubmit = async () => {
-        const newPlaceData = await addPlace(trip.id, newPlace);
-        setNewPlace({ name: '', description: '' }); // Reset form data
+        try {
+            const newPlaceData = await addPlace(trip.id, newPlace);
+            if (newPlaceData) {
+                setNewPlace({ name: '', description: '' }); // Reset form data
+            }
+        } catch (error) {
+            console.error('Error adding place:', error);
+        }
         setOpenAddPlace(false); // Close dialog
     };
 
     const handleAddActivitySubmit = async () => {
-        const newActivityData = await addActivity({ ...newActivity, trip_id: trip.id });
-        setNewActivity({ name: '', description: '', place_id: '' }); // Reset form data
+        try {
+            const newActivityData = await addActivity({ ...newActivity, trip_id: trip.id });
+            if (newActivityData) {
+                setNewActivity({ name: '', description: '', place_id: '' }); // Reset form data
+            }
+        } catch (error) {
+            console.error('Error adding activity:', error);
+        }
         setOpenAddActivity(false); // Close dialog
     };
 
@@ -73,15 +101,7 @@ const TripItem = ({ trip, deleteTrip, deletePlace, deleteActivity, addPlace, add
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={handleEditClose} color="primary">Cancel</Button>
-                        <Button
-                            onClick={() => {
-                                // API call to update trip
-                                handleEditClose();
-                            }}
-                            color="primary"
-                        >
-                            Save
-                        </Button>
+                        <Button onClick={handleEditSubmit} color="primary">Save</Button>
                     </DialogActions>
                 </Dialog>
 
@@ -92,11 +112,11 @@ const TripItem = ({ trip, deleteTrip, deletePlace, deleteActivity, addPlace, add
                         key={place.id}
                         place={place}
                         deletePlace={deletePlace}
-                        tripId={trip.id} // Pass the tripId for place deletion
+                        tripId={trip.id}
                         addActivity={handleAddActivityOpen}
                     />
                 ))}
-                
+
                 <Dialog open={openAddPlace} onClose={handleAddPlaceClose}>
                     <DialogTitle>Add Place</DialogTitle>
                     <DialogContent>
@@ -125,8 +145,7 @@ const TripItem = ({ trip, deleteTrip, deletePlace, deleteActivity, addPlace, add
                 {trip.activities.map(activity => (
                     <ActivityItem key={activity.id} activity={activity} deleteActivity={deleteActivity} tripId={trip.id} />
                 ))}
-                
-                {/* Add Activity Dialog */}
+
                 <Dialog open={openAddActivity} onClose={handleAddActivityClose}>
                     <DialogTitle>Add Activity</DialogTitle>
                     <DialogContent>
