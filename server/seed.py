@@ -1,89 +1,70 @@
-from config import app, db
-from models import Trip, Place, Activity
+from datetime import datetime
+from app import app
+from models import db, Trip, Place, Activity
 
-def seed_trips():
-    """Seed the Trip table."""
-    trips_data = [
-        {
-            "name": "Trip to Paris",
-            "start_date": "2025-03-01",
-            "end_date": "2025-03-10",
-            "description": "A romantic getaway to the City of Light."
-        },
-        {
-            "name": "Trip to New York",
-            "start_date": "2025-05-15",
-            "end_date": "2025-05-20",
-            "description": "Exploring the Big Apple and its iconic landmarks."
-        },
-        {
-            "name": "Trip to Tokyo",
-            "start_date": "2025-07-01",
-            "end_date": "2025-07-10",
-            "description": "Discovering the vibrant culture and cuisine of Tokyo."
-        }
-    ]
-
-    trips = [
-        Trip.from_dict(data) for data in trips_data
-    ]
-
-    for trip in trips:
-        trip.validate_trip_dates()
-
-    db.session.add_all(trips)
-    db.session.commit()
-    return trips
-
-def seed_places(trips):
-    """Seed the Place table with relationships to existing trips."""
-    places = [
-        Place(name="Eiffel Tower", trip_id=trips[0].id, description="Iconic tower in Paris."),
-        Place(name="Louvre Museum", trip_id=trips[0].id, description="Famous museum in Paris."),
-        Place(name="Statue of Liberty", trip_id=trips[1].id, description="Historic statue in New York."),
-        Place(name="Times Square", trip_id=trips[1].id, description="Popular tourist destination in New York."),
-        Place(name="Mount Fuji", trip_id=trips[2].id, description="Famous mountain in Japan."),
-        Place(name="Shibuya Crossing", trip_id=trips[2].id, description="Busy intersection in Tokyo."),
-    ]
-    db.session.add_all(places)
-    db.session.commit()
-    return places
-
-def seed_activities(trips, places):
-    """Seed the Activity table with relationships to existing trips and places."""
-    activities = [
-        Activity(name="Climb to the top of the Eiffel Tower", description="Experience stunning views of Paris.", trip_id=trips[0].id, place_id=places[0].id),
-        Activity(name="Explore the Louvre", description="Discover world-famous art pieces including the Mona Lisa.", trip_id=trips[0].id, place_id=places[1].id),
-        Activity(name="Visit the Statue of Liberty", description="Learn about the history of this iconic statue.", trip_id=trips[1].id, place_id=places[2].id),
-        Activity(name="Experience Times Square at night", description="Enjoy the vibrant lights and energy.", trip_id=trips[1].id, place_id=places[3].id),
-        Activity(name="Hike Mount Fuji", description="Challenge yourself with a trek to Japan's tallest mountain.", trip_id=trips[2].id, place_id=places[4].id),
-        Activity(name="Cross Shibuya Crossing", description="Immerse yourself in the bustling Tokyo vibe.", trip_id=trips[2].id, place_id=places[5].id),
-    ]
-    db.session.add_all(activities)
+with app.app_context():
+    # Clear existing data
+    Activity.query.delete()
+    Place.query.delete()
+    Trip.query.delete()
     db.session.commit()
 
-def reset_database():
-    """Reset the database by dropping all tables and recreating them."""
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
+    # Add places
+    place1 = Place(name="Grand Canyon", description="A stunning natural wonder in Arizona.")
+    place2 = Place(name="Yellowstone National Park", description="A park known for its geothermal features and wildlife.")
+    place3 = Place(name="Yosemite National Park", description="Famous for its granite cliffs, waterfalls, and giant sequoias.")
+    place4 = Place(name="Zion National Park", description="Known for its steep red cliffs and scenic canyon views.")
+    place5 = Place(name="Bryce Canyon National Park", description="Famous for its unique red rock formations called hoodoos.")
+    place6 = Place(name="Arches National Park", description="Renowned for its over 2,000 natural stone arches.")
+    place7 = Place(name="Glacier National Park", description="Featuring pristine wilderness, alpine scenery, and glacial lakes.")
+    place8 = Place(name="Rocky Mountain National Park", description="Home to majestic peaks and diverse wildlife.")
+    place9 = Place(name="Great Smoky Mountains National Park", description="Known for its mist-covered mountains and rich biodiversity.")
+    place10 = Place(name="Everglades National Park", description="A unique ecosystem of wetlands, home to diverse wildlife.")
 
-def seed_database():
-    """Seed the database with initial data."""
-    with app.app_context():
-        print("Resetting database...")
-        reset_database()
+    db.session.add_all([place1, place2, place3, place4, place5, place6, place7, place8, place9, place10])
+    db.session.commit()
 
-        print("Seeding trips...")
-        trips = seed_trips()
+    # Add trips
+    trip1 = Trip(
+        name="Southwest Adventure",
+        start_date=datetime(2025, 4, 10).date(),
+        end_date=datetime(2025, 4, 20).date(),
+        description="An exciting adventure through the American Southwest."
+    )
 
-        print("Seeding places...")
-        places = seed_places(trips)
+    trip2 = Trip(
+        name="National Park Expedition",
+        start_date=datetime(2025, 5, 1).date(),
+        end_date=datetime(2025, 5, 15).date(),
+        description="Exploring some of the most iconic national parks."
+    )
 
-        print("Seeding activities...")
-        seed_activities(trips, places)
+    db.session.add_all([trip1, trip2])
+    db.session.commit()
 
-        print("Database seeded successfully!")
+    # Add activities and associate them with trips and places
+    activity1 = Activity(
+        name="Hiking the Bright Angel Trail",
+        description="A challenging yet rewarding hike into the Grand Canyon.",
+        place=place1,
+        trip=trip1
+    )
 
-if __name__ == "__main__":
-    seed_database()
+    activity2 = Activity(
+        name="Watching Old Faithful Geyser",
+        description="Witness the eruption of this famous geyser.",
+        place=place2,
+        trip=trip2
+    )
+
+    activity3 = Activity(
+        name="Rock Climbing in Yosemite",
+        description="Experience rock climbing on Yosemite's famous cliffs.",
+        place=place3,
+        trip=trip2
+    )
+
+    db.session.add_all([activity1, activity2, activity3])
+    db.session.commit()
+
+    print("Database seeded successfully!")

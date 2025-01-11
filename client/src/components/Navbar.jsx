@@ -9,8 +9,8 @@ const Navbar = () => {
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
                     Travel Journal
                 </Typography>
-                <Button color="inherit" component={Link} to="/">
-                    Home
+                <Button color="inherit" component={Link} to="/places">
+                    Places List
                 </Button>
                 <Button color="inherit" component={Link} to="/trips">
                     Trips

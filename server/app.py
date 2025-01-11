@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 
-from flask import request
+from flask import request, jsonify
 from flask_restful import Resource
 from config import app, db, api
 from models import Trip, Place, Activity
 from datetime import datetime
 
-# Utility function for parsing dates
 def parse_date(date_str):
     try:
         return datetime.strptime(date_str, '%Y-%m-%d').date()
     except ValueError:
-        raise ValueError(f"Invalid date format: {date_str}. Expected 'YYYY-MM-DD'.")
+        raise ValueError("Invalid date format. Expected 'YYYY-MM-DD'.")
 
 # Resources
 class TripListResource(Resource):
@@ -22,6 +21,9 @@ class TripListResource(Resource):
     def post(self):
         data = request.get_json()
         try:
+            if not data.get('name') or not data.get('start_date') or not data.get('end_date'):
+                return {'error': 'Name, start_date, and end_date are required fields.'}, 400
+
             trip = Trip(
                 name=data['name'],
                 start_date=parse_date(data['start_date']),
@@ -44,6 +46,9 @@ class TripResource(Resource):
         trip = Trip.query.get_or_404(trip_id)
         data = request.get_json()
         try:
+            if not data.get('name') or not data.get('start_date') or not data.get('end_date'):
+                return {'error': 'Name, start_date, and end_date are required fields.'}, 400
+
             trip.name = data['name']
             trip.start_date = parse_date(data['start_date'])
             trip.end_date = parse_date(data['end_date'])
@@ -57,7 +62,6 @@ class TripResource(Resource):
         trip = Trip.query.get_or_404(trip_id)
         data = request.get_json()
         try:
-            # Update only the fields provided in the request
             if 'name' in data:
                 trip.name = data['name']
             if 'start_date' in data:
@@ -85,21 +89,13 @@ class PlaceListResource(Resource):
 
     def post(self):
         data = request.get_json()
-        if not data or not data.get('name'):
-            return {'error': 'Name is required'}, 400
-        if not data.get('trip_id'):
-            return {'error': 'Trip ID is required'}, 400
-
-        trip_id = data.get('trip_id')
-        trip = Trip.query.get(trip_id)
-        if not trip:
-            return {'error': 'Trip not found'}, 404
-
-        place = Place(name=data['name'], description=data.get('description'), trip_id=trip_id)
-        db.session.add(place)
-        db.session.commit()
-
-        return place.to_dict(), 201
+        try:
+            place = Place(name=data['name'], description=data.get('description', ''))
+            db.session.add(place)
+            db.session.commit()
+            return place.to_dict(), 201
+        except Exception as e:
+            return {'error': str(e)}, 400
 
 
 class PlaceResource(Resource):
@@ -111,6 +107,9 @@ class PlaceResource(Resource):
         place = Place.query.get_or_404(place_id)
         data = request.get_json()
         try:
+            if not data.get('name'):
+                return {'error': 'Name is required.'}, 400
+
             place.name = data['name']
             place.description = data.get('description', place.description)
             db.session.commit()
@@ -133,13 +132,14 @@ class ActivityListResource(Resource):
     def post(self):
         data = request.get_json()
         try:
-            trip_id = data['trip_id']
-            place_id = data['place_id']
+            if not data.get('name') or not data.get('trip_id') or not data.get('place_id'):
+                return {'error': 'Name, Trip ID, and Place ID are required fields.'}, 400
+
             activity = Activity(
                 name=data['name'],
                 description=data.get('description', ''),
-                trip_id=trip_id,
-                place_id=place_id
+                trip_id=data['trip_id'],
+                place_id=data['place_id']
             )
             db.session.add(activity)
             db.session.commit()
@@ -174,13 +174,12 @@ class ActivityResource(Resource):
 
 
 # Register Resources
-api.add_resource(TripListResource, '/trips')  # List all trips / Create a new trip
-api.add_resource(TripResource, '/trips/<int:trip_id>')  # Get, Update, or Delete a specific trip
-api.add_resource(PlaceListResource, '/places')  # List all places / Create a new place
-api.add_resource(PlaceResource, '/places/<int:place_id>')  # Get, Update, or Delete a specific place
-api.add_resource(ActivityListResource, '/activities')  # List all activities / Create a new activity
-api.add_resource(ActivityResource, '/activities/<int:activity_id>')  # Get, Update, or Delete a specific activity
-
+api.add_resource(TripListResource, '/trips')
+api.add_resource(TripResource, '/trips/<int:trip_id>')
+api.add_resource(PlaceListResource, '/places')
+api.add_resource(PlaceResource, '/places/<int:place_id>')
+api.add_resource(ActivityListResource, '/activities')
+api.add_resource(ActivityResource, '/activities/<int:activity_id>')
 
 # Run the app
 if __name__ == '__main__':
