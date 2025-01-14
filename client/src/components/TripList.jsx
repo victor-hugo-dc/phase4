@@ -27,40 +27,40 @@ const TripList = ({ trips, places, setTrips }) => {
             alert('Please fill out all fields and select a place.');
             return;
         }
-    
+
         const newActivity = {
             name: activityName,
             description: activityDescription,
             place_id: selectedPlace,
             trip_id: tripId,
         };
-    
+
         try {
             const response = await fetch('http://127.0.0.1:5555/activities', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newActivity),
             });
-    
+
             const data = await response.json();
-    
+
             if (response.ok) {
                 setTrips((prevTrips) =>
                     prevTrips.map((trip) => {
                         if (trip.id !== tripId) return trip;
-    
+
                         // Check if the place already exists in the trip
                         const placeExists = trip.places?.find(place => place.id === selectedPlace);
-    
+
                         let updatedPlaces;
                         if (placeExists) {
                             // Add the new activity to the existing place
                             updatedPlaces = trip.places.map((place) =>
                                 place.id === selectedPlace
                                     ? {
-                                          ...place,
-                                          activities: [...(place.activities || []), data],
-                                      }
+                                        ...place,
+                                        activities: [...(place.activities || []), data],
+                                    }
                                     : place
                             );
                         } else {
@@ -75,11 +75,11 @@ const TripList = ({ trips, places, setTrips }) => {
                                 },
                             ];
                         }
-    
+
                         return { ...trip, places: updatedPlaces };
                     })
                 );
-    
+
                 setActivityName('');
                 setActivityDescription('');
                 setSelectedPlace('');
@@ -92,7 +92,7 @@ const TripList = ({ trips, places, setTrips }) => {
             alert('An error occurred while adding the activity.');
         }
     };
-    
+
 
     // Handle activity deletion
     const handleDeleteActivity = async (tripId, placeId, activityId) => {
@@ -110,9 +110,9 @@ const TripList = ({ trips, places, setTrips }) => {
                             .map((place) =>
                                 place.id === placeId
                                     ? {
-                                          ...place,
-                                          activities: place.activities.filter((activity) => activity.id !== activityId),
-                                      }
+                                        ...place,
+                                        activities: place.activities.filter((activity) => activity.id !== activityId),
+                                    }
                                     : place
                             )
                             .filter((place) => place.activities.length > 0);
@@ -177,47 +177,54 @@ const TripList = ({ trips, places, setTrips }) => {
         <Box sx={{ padding: 2 }}>
             {trips.map((trip) => (
                 <Box key={trip.id} sx={{ marginBottom: 3, border: '1px solid #ddd', borderRadius: '8px', padding: 2 }}>
-                    <Box sx={{ marginBottom: 2 }}>
-                        <h2>{trip.name}</h2>
-                        <p>{trip.description}</p>
-                    </Box>
                     <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                         {editTripId === trip.id ? (
-                            <>
-                                <Button
-                                    variant="contained"
-                                    color="primary"
-                                    onClick={handleUpdateTrip}
-                                    sx={{ marginBottom: 1 }}
-                                >
-                                    Save
-                                </Button>
-                                <Button
-                                    variant="outlined"
-                                    onClick={handleCloseEditTripDialog}
-                                >
-                                    Cancel
-                                </Button>
-                            </>
+                            <Box sx={{ width: '80%' }}>
+                                <TextField
+                                    label="Trip Name"
+                                    fullWidth
+                                    value={tripName}
+                                    onChange={(e) => setTripName(e.target.value)}
+                                    sx={{ marginBottom: 2 }}
+                                />
+                                <TextField
+                                    label="Trip Description"
+                                    fullWidth
+                                    multiline
+                                    rows={4}
+                                    value={tripDescription}
+                                    onChange={(e) => setTripDescription(e.target.value)}
+                                    sx={{ marginBottom: 2 }}
+                                />
+                            </Box>
                         ) : (
-                            <>
-                                <Button
-                                    variant="outlined"
-                                    color="secondary"
-                                    onClick={() => handleOpenEditTripDialog(trip.id, trip.name, trip.description)}
-                                    sx={{ marginBottom: 1 }}
-                                >
-                                    Edit Trip
-                                </Button>
-                                <Button
-                                    variant="outlined"
-                                    color="error"
-                                    onClick={() => handleDeleteTrip(trip.id)}
-                                >
-                                    Delete Trip
-                                </Button>
-                            </>
+                            <Box sx={{ width: '80%' }}>
+                                <h2>{trip.name}</h2>
+                                <p>{trip.description}</p>
+                            </Box>
                         )}
+
+                        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            {editTripId === trip.id ? (
+                                <>
+                                    <Button variant="contained" color="primary" onClick={handleUpdateTrip} sx={{ marginBottom: 1 }}>
+                                        Save
+                                    </Button>
+                                    <Button variant="outlined" onClick={handleCloseEditTripDialog}>
+                                        Cancel
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <Button variant="outlined" color="secondary" onClick={() => handleOpenEditTripDialog(trip.id, trip.name, trip.description)} sx={{ marginBottom: 1 }}>
+                                        Edit Trip
+                                    </Button>
+                                    <Button variant="outlined" color="error" onClick={() => handleDeleteTrip(trip.id)}>
+                                        Delete Trip
+                                    </Button>
+                                </>
+                            )}
+                        </Box>
                     </Box>
 
 
