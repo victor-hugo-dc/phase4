@@ -16,7 +16,17 @@ def parse_date(date_str):
 class TripListResource(Resource):
     def get(self):
         trips = Trip.query.all()
-        return [trip.to_dict() for trip in trips], 200
+
+        result = []
+        for trip in trips:
+            trip_dict = trip.to_dict(only=('places', 'id', 'name', 'description', 'start_date', 'end_date'))
+            for place in trip_dict['places']:
+                place['activities'] = [
+                    activity for activity in place['activities'] if activity['trip_id'] == trip.id
+                ]
+            result.append(trip_dict)
+
+        return result, 200
 
     def post(self):
         data = request.get_json()

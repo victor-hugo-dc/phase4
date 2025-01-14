@@ -22,54 +22,104 @@ const TripList = ({ trips, places, setTrips }) => {
 
     const handleCloseEditTripDialog = () => setEditTripId(null);
 
-    // Add a new activity to a trip
     const handleAddNewActivity = async (tripId) => {
+        if (!activityName.trim() || !activityDescription.trim() || !selectedPlace) {
+            alert('Please fill out all fields and select a place.');
+            return;
+        }
+    
         const newActivity = {
             name: activityName,
             description: activityDescription,
             place_id: selectedPlace,
             trip_id: tripId,
         };
-
+    
         try {
             const response = await fetch('http://127.0.0.1:5555/activities', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newActivity),
             });
+    
             const data = await response.json();
+    
             if (response.ok) {
-                const updatedTrips = trips.map((trip) =>
-                    trip.id === tripId
-                        ? { ...trip, activities: [...trip.activities, data] }
-                        : trip
+                setTrips((prevTrips) =>
+                    prevTrips.map((trip) => {
+                        if (trip.id !== tripId) return trip;
+    
+                        // Check if the place already exists in the trip
+                        const placeExists = trip.places?.find(place => place.id === selectedPlace);
+    
+                        let updatedPlaces;
+                        if (placeExists) {
+                            // Add the new activity to the existing place
+                            updatedPlaces = trip.places.map((place) =>
+                                place.id === selectedPlace
+                                    ? {
+                                          ...place,
+                                          activities: [...(place.activities || []), data],
+                                      }
+                                    : place
+                            );
+                        } else {
+                            // Add a new place with the new activity
+                            updatedPlaces = [
+                                ...(trip.places || []),
+                                {
+                                    id: selectedPlace,
+                                    name: data.place.name || 'New Place', // Replace with actual place name if available
+                                    description: data.place.description || '',
+                                    activities: [data],
+                                },
+                            ];
+                        }
+    
+                        return { ...trip, places: updatedPlaces };
+                    })
                 );
-                setTrips(updatedTrips);
+    
+                setActivityName('');
+                setActivityDescription('');
+                setSelectedPlace('');
                 handleCloseNewActivityDialog();
             } else {
-                alert(data.error || 'Error adding activity');
+                alert(data.error || 'Failed to add activity.');
             }
         } catch (error) {
             console.error('Error adding activity:', error);
+            alert('An error occurred while adding the activity.');
         }
     };
+    
 
     // Handle activity deletion
-    const handleDeleteActivity = async (tripId, activityId) => {
+    const handleDeleteActivity = async (tripId, placeId, activityId) => {
         try {
             const response = await fetch(`http://127.0.0.1:5555/activities/${activityId}`, {
                 method: 'DELETE',
             });
+
             if (response.ok) {
-                const updatedTrips = trips.map((trip) =>
-                    trip.id === tripId
-                        ? {
-                            ...trip,
-                            activities: trip.activities.filter((activity) => activity.id !== activityId),
-                        }
-                        : trip
+                setTrips((prevTrips) =>
+                    prevTrips.map((trip) => {
+                        if (trip.id !== tripId) return trip;
+
+                        const updatedPlaces = trip.places
+                            .map((place) =>
+                                place.id === placeId
+                                    ? {
+                                          ...place,
+                                          activities: place.activities.filter((activity) => activity.id !== activityId),
+                                      }
+                                    : place
+                            )
+                            .filter((place) => place.activities.length > 0);
+
+                        return { ...trip, places: updatedPlaces };
+                    })
                 );
-                setTrips(updatedTrips);
             } else {
                 alert('Error deleting activity');
             }
@@ -125,97 +175,91 @@ const TripList = ({ trips, places, setTrips }) => {
 
     return (
         <Box sx={{ padding: 2 }}>
-            {/* Render each trip */}
             {trips.map((trip) => (
                 <Box key={trip.id} sx={{ marginBottom: 3, border: '1px solid #ddd', borderRadius: '8px', padding: 2 }}>
-                    {/* Edit Trip */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box sx={{ marginBottom: 2 }}>
+                        <h2>{trip.name}</h2>
+                        <p>{trip.description}</p>
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                         {editTripId === trip.id ? (
-                            <Box sx={{ width: '80%' }}>
-                                <TextField
-                                    label="Trip Name"
-                                    fullWidth
-                                    value={tripName}
-                                    onChange={(e) => setTripName(e.target.value)}
-                                    sx={{ marginBottom: 2 }}
-                                />
-                                <TextField
-                                    label="Trip Description"
-                                    fullWidth
-                                    multiline
-                                    rows={4}
-                                    value={tripDescription}
-                                    onChange={(e) => setTripDescription(e.target.value)}
-                                    sx={{ marginBottom: 2 }}
-                                />
-                            </Box>
+                            <>
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={handleUpdateTrip}
+                                    sx={{ marginBottom: 1 }}
+                                >
+                                    Save
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    onClick={handleCloseEditTripDialog}
+                                >
+                                    Cancel
+                                </Button>
+                            </>
                         ) : (
-                            <Box sx={{ width: '80%' }}>
-                                <h2>{trip.name}</h2>
-                                <p>{trip.description}</p>
-                            </Box>
+                            <>
+                                <Button
+                                    variant="outlined"
+                                    color="secondary"
+                                    onClick={() => handleOpenEditTripDialog(trip.id, trip.name, trip.description)}
+                                    sx={{ marginBottom: 1 }}
+                                >
+                                    Edit Trip
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    color="error"
+                                    onClick={() => handleDeleteTrip(trip.id)}
+                                >
+                                    Delete Trip
+                                </Button>
+                            </>
                         )}
-
-                        {/* Buttons for editing/deleting */}
-                        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                            {editTripId === trip.id ? (
-                                <>
-                                    <Button variant="contained" color="primary" onClick={handleUpdateTrip} sx={{ marginBottom: 1 }}>
-                                        Save
-                                    </Button>
-                                    <Button variant="outlined" onClick={handleCloseEditTripDialog}>
-                                        Cancel
-                                    </Button>
-                                </>
-                            ) : (
-                                <>
-                                    <Button variant="outlined" color="secondary" onClick={() => handleOpenEditTripDialog(trip.id, trip.name, trip.description)} sx={{ marginBottom: 1 }}>
-                                        Edit Trip
-                                    </Button>
-                                    <Button variant="outlined" color="error" onClick={() => handleDeleteTrip(trip.id)}>
-                                        Delete Trip
-                                    </Button>
-                                </>
-                            )}
-                        </Box>
                     </Box>
 
-                    {/* Render Activities */}
-                    <Box sx={{ marginTop: 2 }}>
-                        <h3>Activities:</h3>
-                        <List>
-                            {trip.activities.map((activity) => {
-                                const place = places.find((p) => p.id === activity.place_id);
-                                return (
+
+                    {/* Places and Activities */}
+                    {trip.places && trip.places.map((place) => (
+                        <Box key={place.id} sx={{ marginTop: 2 }}>
+                            <h3>{place.name}</h3>
+                            <p>{place.description}</p>
+                            <List>
+                                {place.activities.map((activity) => (
                                     <ListItem key={activity.id} sx={{ display: 'flex', alignItems: 'center' }}>
-                                        <span style={{ marginRight: '10px' }}>•</span> {/* Bullet point */}
-                                        <ListItemText
-                                            primary={activity.name}
-                                            secondary={
-                                                <>
-                                                    {activity.description}
-                                                    <br />
-                                                    Location: {place ? place.name : 'Unknown'}
-                                                </>
-                                            }
-                                        />
-                                        <Button variant="outlined" color="error" size="small" onClick={() => handleDeleteActivity(trip.id, activity.id)}>
+                                        <span style={{ marginRight: '10px' }}>•</span>
+                                        <ListItemText primary={activity.name} secondary={activity.description} />
+                                        <Button
+                                            variant="outlined"
+                                            color="error"
+                                            size="small"
+                                            onClick={() => handleDeleteActivity(trip.id, place.id, activity.id)}
+                                        >
                                             Delete Activity
                                         </Button>
                                     </ListItem>
-                                );
-                            })}
-                        </List>
-                        <Button variant="contained" color="secondary" onClick={() => handleOpenNewActivityDialog(trip.id)}>
-                            Add Activity
-                        </Button>
-                    </Box>
+                                ))}
+                            </List>
+                        </Box>
+                    ))}
+
+                    {/* Add Activity Button */}
+                    <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => handleOpenNewActivityDialog(trip.id)}
+                        sx={{ marginTop: 2 }}
+                    >
+                        Add Activity
+                    </Button>
 
                     <Divider sx={{ marginTop: 2 }} />
                 </Box>
             ))}
 
-            {/* Dialog for adding a new activity */}
+
             {newActivityDialogOpen !== null && (
                 <Dialog open={true} onClose={handleCloseNewActivityDialog}>
                     <DialogTitle>Add New Activity</DialogTitle>

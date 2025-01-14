@@ -16,7 +16,8 @@ class Trip(db.Model, SerializerMixin):
     activities = db.relationship('Activity', back_populates='trip', cascade='all, delete-orphan')
     places = association_proxy('activities', 'place', creator=lambda place_obj: Activity(place=place_obj))
 
-    serialize_rules = ('-activities.trip', '-activities.place', '-places.activities')
+    serialize_rules = ('-activities.trip',)
+    # serialize_rules = ('-activities.trip', '-activities.place', '-places.activities')
 
     @validates('name')
     def validate_name(self, key, value):
@@ -55,7 +56,7 @@ class Place(db.Model, SerializerMixin):
     activities = db.relationship('Activity', back_populates='place', cascade='all, delete-orphan')
     trips = association_proxy('activity', 'trip', creator = lambda trip_obj : Activity(trip = trip_obj))
 
-    serialize_rules = ('-activities.place', '-activities.trip')
+    serialize_rules = ('-activities.place', '-activities.trip',)
 
     @validates('name')
     def validate_name(self, key, value):
@@ -77,7 +78,7 @@ class Activity(db.Model, SerializerMixin):
     place = db.relationship('Place', back_populates='activities')
     trip = db.relationship('Trip', back_populates='activities')
 
-    serialize_rules = ('-place.activities', '-trip.activities')
+    serialize_rules = ('-place.activities', '-trip.activities',)
 
     @validates('name')
     def validate_name(self, key, value):
