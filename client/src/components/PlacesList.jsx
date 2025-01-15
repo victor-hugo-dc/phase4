@@ -1,33 +1,39 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { TextField, Button, List, ListItem, ListItemText, Typography, Box } from '@mui/material';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
 
 const PlacesList = ({ places, setPlaces }) => {
-    const [newPlace, setNewPlace] = useState({ name: '', description: '' });
+    const formik = useFormik({
+        initialValues: { name: '', description: '' },
+        validationSchema: Yup.object({
+            name: Yup.string()
+                .required('Place name is required')
+                .min(2, 'Name must be at least 2 characters'),
+            description: Yup.string()
+                .required('Description is required')
+                .min(5, 'Description must be at least 5 characters'),
+        }),
+        onSubmit: async (values, { resetForm }) => {
+            try {
+                const response = await fetch('http://localhost:5555/places', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(values),
+                });
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewPlace({ ...newPlace, [name]: value });
-    };
+                if (!response.ok) {
+                    throw new Error('Failed to add place');
+                }
 
-    const addPlace = async () => {
-        try {
-            const response = await fetch('http://localhost:5555/places', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newPlace),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to add place');
+                const newPlaceData = await response.json();
+                setPlaces([...places, newPlaceData]);
+                resetForm();
+            } catch (error) {
+                console.error('Error adding place:', error);
             }
-
-            const newPlaceData = await response.json();
-            setPlaces([...places, newPlaceData]);
-            setNewPlace({ name: '', description: '' });
-        } catch (error) {
-            console.error('Error adding place:', error);
-        }
-    };
+        },
+    });
 
     const removePlace = async (placeId) => {
         try {
@@ -47,11 +53,18 @@ const PlacesList = ({ places, setPlaces }) => {
             {/* Display list of places */}
             <List>
                 {places.map((place) => (
-                    <ListItem key={place.id} secondaryAction={
-                        <Button variant="outlined" color="error" onClick={() => removePlace(place.id)}>
-                            Remove
-                        </Button>
-                    }>
+                    <ListItem
+                        key={place.id}
+                        secondaryAction={
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                onClick={() => removePlace(place.id)}
+                            >
+                                Remove
+                            </Button>
+                        }
+                    >
                         <ListItemText
                             primary={place.name}
                             secondary={place.description}
@@ -61,15 +74,18 @@ const PlacesList = ({ places, setPlaces }) => {
             </List>
 
             {/* Form to add a new place */}
-            <Box sx={{ marginTop: 3 }}>
+            <Box sx={{ marginTop: 3 }} component="form" onSubmit={formik.handleSubmit}>
                 <Typography variant="h6">Add New Place</Typography>
 
                 <TextField
                     fullWidth
                     label="Place Name"
                     name="name"
-                    value={newPlace.name}
-                    onChange={handleInputChange}
+                    value={formik.values.name}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.name && Boolean(formik.errors.name)}
+                    helperText={formik.touched.name && formik.errors.name}
                     variant="outlined"
                     margin="normal"
                 />
@@ -78,17 +94,20 @@ const PlacesList = ({ places, setPlaces }) => {
                     fullWidth
                     label="Description"
                     name="description"
-                    value={newPlace.description}
-                    onChange={handleInputChange}
+                    value={formik.values.description}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.description && Boolean(formik.errors.description)}
+                    helperText={formik.touched.description && formik.errors.description}
                     variant="outlined"
                     margin="normal"
                 />
 
                 <Button
                     fullWidth
+                    type="submit"
                     variant="contained"
                     color="primary"
-                    onClick={addPlace}
                     sx={{ marginTop: 2 }}
                 >
                     Add Place
